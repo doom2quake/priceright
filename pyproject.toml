@@ -1,0 +1,24 @@
+[project]
+name = "priceright"
+version = "0.1.0"
+description = "An agent economy where a resolver buys the right to answer with a signed x402 payment, bonds collateral against its ERC-8004 identity, and loses that collateral when its committed verdict misses the revealed truth."
+requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# there is no third-party runtime dependency, the remote x402 facilitator rail
+# included: keccak-256, secp256k1, EIP-712, ABI encoding, RLP, the JSON-RPC client and
+# the facilitator HTTP client are all in priceright/, on the standard library.
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+priceright = "priceright.main:cli"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["priceright*", "agent_core*"]
