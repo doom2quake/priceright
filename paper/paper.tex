@@ -1,0 +1,220 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{amsmath}
+
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor={blue!60!black}}
+
+\lstset{basicstyle=\ttfamily\footnotesize, breaklines=true, columns=fullflexible,
+  frame=single, framesep=4pt, xleftmargin=4pt, aboveskip=6pt, belowskip=6pt}
+
+\title{\textbf{PriceRight: An Accountability Layer for\\ x402 Agent Commerce on Base}}
+\author{Dipankar Sarkar}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Autonomous agents are starting to transact with each other on Base, where x402 makes an
+agent-to-agent USDC payment a single HTTP round trip, but an agent that is paid to produce a
+judgement has no skin in the game: if it answers wrong, it keeps its fee and moves on.
+PriceRight closes that gap by making the right to answer a paid resource and the answer a
+collateralised commitment. The claim endpoint replies \texttt{402 Payment Required} with
+x402 payment requirements; the resolver signs an EIP-3009 \texttt{TransferWithAuthorization}
+and presents it in an \texttt{X-PAYMENT} header, and the arena settles that authorisation
+on-chain, so the fee moves by signature rather than by a prior allowance and is bound to one
+task by a nonce that commits to the arena address and the chain id. In the same call the
+resolver's collateral is custodied per task in a vault keyed by its ERC-8004 identity, which
+is a real ERC-721. Settlement is a pure function of the committed verdict and a truth the
+poster hash-committed in advance: correct returns the fee, the bounty and the collateral and
+writes a score of 100 into the ERC-8004 reputation registry; wrong moves the collateral to
+the poster and writes a zero. Commit and reveal deadlines with permissionless timeouts mean
+neither party can freeze the escrow, and no terminal path leaves value stranded. We report
+46 Solidity tests, 53 Python tests, a cross-language pin in which a signature produced by
+this paper's pure-Python secp256k1 is verified by Solidity's \texttt{ecrecover} while the
+Python suite regenerates the same vector from the Solidity constants, and a recorded local
+devnet run whose transaction hashes are reproduced in the interface.
+\end{abstract}
+
+\section{Problem}
+Agent-to-agent commerce assumes an agent that takes payment for work will do the work
+well, but a fee alone creates no accountability. If a resolver agent is paid to answer a
+subjective yes/no question (``did this event happen?'', ``did this project ship?'') and
+answers wrong, a naive market simply pays it and forgets. The result is an economy where
+confidently wrong agents are indistinguishable, ex ante, from careful ones, and where a
+buyer of judgements cannot price the risk of a bad answer.
+
+Two ingredients are missing. First, a payment rail that gates access to the task so that
+answering is never free~\cite{x402,rfc9110}. Second, a portable, on-chain identity that
+carries reputation \emph{and} bonded value, so a wrong answer costs the agent something it
+cannot quietly reset~\cite{erc8004}. Proof-of-stake systems have long used bonded stake
+plus slashing to make misbehaviour expensive~\cite{bentov2016snowwhite,nakamoto2008bitcoin};
+PriceRight applies the same economic logic to the outputs of autonomous agents.
+
+\section{Related Work}
+\textbf{ERC-8004 Trustless Agents}~\cite{erc8004} specifies an Identity registry (an agent
+as an ERC-721~\cite{eip721} whose token id is the agent id), a Reputation registry in which
+feedback is permissionless and readers filter by client, and a Validation registry for
+third-party attestation. PriceRight implements all three and adds the economics the
+standard deliberately omits: a collateral vault keyed by agent id, so a score of zero is
+accompanied by value that actually moved. Because reputation is keyed by agent id rather
+than by address, a transferred identity carries its record with it. The fee token follows
+ERC-20~\cite{eip20} and additionally implements EIP-3009 transfer authorisations, as USDC
+does.
+
+\textbf{x402}~\cite{x402} is an HTTP-native payment standard built on the 402 Payment
+Required status code~\cite{rfc9110}: a resource answers 402 with an \texttt{accepts} array
+of payment requirements, the client returns a payment payload in an \texttt{X-PAYMENT}
+header, and a facilitator verifies and settles it. On EVM chains the \texttt{exact} scheme
+settles by EIP-3009 over USDC on Base, which is what PriceRight implements: the right to claim and be scored
+on a task is the paid resource, and the arena is the party that submits the payer's signed
+authorisation.
+
+\textbf{Bonded stake and slashing} are the core accountability mechanism of proof-of-stake
+consensus~\cite{bentov2016snowwhite}, where a validator that signs conflicting messages
+loses stake. Adversarial value-extraction on public chains~\cite{daian2020flash} motivates
+a deterministic, commit-based settlement so the outcome cannot be steered after the fact.
+Content integrity uses keccak-256~\cite{keccak2011}, the hash Ethereum exposes as
+\texttt{keccak256}~\cite{buterin2014ethereum}.
+
+\section{Design}
+PriceRight is six contracts and a resolver agent.
+
+\paragraph{ERC-8004 registries.} \texttt{IdentityRegistry} is an ERC-721 whose token id is
+the agent id; \texttt{supportsInterface} reports \texttt{0x80ac58cd} and
+\texttt{0x5b5e139f}, and identities transfer and approve like any other token.
+\texttt{ReputationRegistry} exposes \texttt{giveFeedback} to anyone and
+\texttt{getSummary(agentId, clients, tag)} to readers, who decide whose feedback counts;
+the arena writes as an ordinary client, not as an administrator.
+\texttt{ValidationRegistry} records a request and, later, a response.
+
+\paragraph{AgentStakeVault.} ERC-8004 says nothing about money, so the economics live in an
+extension. Collateral is real ERC-20 held by the vault under a key the arena derives from
+$(\text{arena}, \text{taskId})$ and tagged with the agent id it backs. Every bond ends in
+exactly one of two terminal states, and both move tokens: \texttt{release} to a named
+address, or \texttt{slash} to a named beneficiary. There is no path that leaves collateral
+in the vault, which the suite asserts by draining the system after each settlement.
+
+\paragraph{AgentArena.} A poster calls \texttt{postTask} with a bounty and a salted
+commitment $c = \mathrm{keccak256}(\mathrm{uint8}(t) \,\|\, s)$, fixing the truth $t$ before
+any resolver can commit. A resolver calls \texttt{claimTask} with an x402 \texttt{exact}
+payment: the EIP-3009 fields plus $(v,r,s)$. The arena requires that the payer is the
+caller, that the value equals the posted fee, and that the nonce equals
+\[
+\mathrm{keccak256}\big(\textsc{scope} \,\|\, \text{arena} \,\|\, \text{chainId} \,\|\,
+\text{taskId} \,\|\, \text{agentId}\big),
+\]
+then calls \texttt{transferWithAuthorization} and checks the balance actually moved. That
+nonce is the binding: an authorisation signed for one task cannot be replayed against
+another task, another arena or another chain, and the token's own nonce map makes it
+single-use. Collateral is bonded in the same call. The resolver then calls
+\texttt{commitVerdict}, which stores $\mathrm{keccak256}$ of its reasoning and files a
+validation request whose request hash is derived from it, before the truth is revealed, so
+the attestation cannot be back-dated. Finally the poster calls \texttt{settle}, revealing
+$(t,s)$; the contract checks the reveal reproduces $c$ and compares:
+\[
+\text{correct} \Rightarrow \text{fee} + \text{bounty} + \text{collateral to the resolver},\
+\text{feedback } 100
+\]
+\[
+\text{wrong} \Rightarrow \text{fee} + \text{bounty} + \text{collateral to the poster},\
+\text{feedback } 0.
+\]
+
+\paragraph{Liveness.} A claim sets a commit deadline and a commit sets a reveal deadline.
+After either passes, \emph{anyone} may call the corresponding timeout. A resolver that
+never commits forfeits its fee to the poster but keeps its collateral, since it gave no
+wrong verdict; a poster that never reveals pays the resolver the fee, the bounty and its
+collateral back, which makes withholding a reveal strictly worse than revealing whatever
+the truth turns out to be. Payouts are credits withdrawn by pull, so one unlucky transfer
+cannot brick a settlement.
+
+\paragraph{Two backends, one interface.} The agent talks to a chain object.
+\texttt{JsonRpcChain} builds, RLP-encodes, signs and broadcasts EIP-1559 transactions and
+reads state with \texttt{eth\_call}. \texttt{InMemoryChain} executes the same state machine
+in process, including EIP-3009 verification against a real EIP-712 digest with real
+signature recovery, so a forged or replayed authorisation fails there exactly as it fails
+in the token. Configuration selects between them in one place, and a half-configured
+environment raises rather than quietly running the mirror.
+
+\paragraph{The resolver does not know the answer.} The poster holds $(t,s)$; the resolver
+is handed a claim and an evidence bundle. \texttt{EvidencePolicy} parses a threshold claim
+such as \texttt{ETH/USD >= 4000 @ block 21451200}, keeps the readings that match both the
+symbol and the block, takes their median and compares. When the evidence does not cover the
+claim it returns an abstention and the agent declines to pay at all. The contrasting agent,
+\texttt{StaleCachePolicy}, evaluates the same comparison against a week-old cached quote.
+It is not adversarial and it is not rigged to lose: given a threshold its cache clears, it
+wins.
+
+\section{The Hero}
+Two agents, one arena, one rule, on a live node. Both pay the same x402 fee. The first
+reads three oracle readings, commits \emph{Yes}, and at settlement is credited the fee, the
+bounty and its collateral, with a score of 100 written to the reputation registry. The
+second answers from its cache, commits \emph{No}, and at settlement its collateral is moved
+to the poster and a zero is written against its identity. The difference between them is
+diligence, not honesty, which is the failure mode a market of paid agents actually has.
+
+What makes it a hero rather than an animation is that a reviewer can leave the room and
+check it: \texttt{cast logs} shows the \texttt{Slashed} event, \texttt{cast call} on the
+vault returns the slashed amount for that agent id, and the interface displays the
+transaction hashes from the same recorded run.
+
+\section{Evaluation}
+The contracts compile under solc 0.8.24 with no vendored dependencies and pass 46 Foundry
+tests: the lifecycle, both settlement paths, the value-conservation invariant after each,
+both permissionless timeouts, the deadline guards, the x402 binding and replay properties,
+and ERC-721 and reputation conformance. The Python side passes 53 tests covering the same
+state machine, the policy's dependence on evidence, the abstention path, the streamed run
+events and every rejection reason the facilitator can return.
+
+Two results are worth separating from the counts. First, the fee genuinely moves by
+signature: the resolver holds no allowance for the arena, so
+\texttt{test\_fee\_moves\_by\_signature\_not\_by\_allowance} would fail if the payment were
+decorative. Second, the two languages are pinned to each other. The Python client signs
+with the pure-Python secp256k1 in this repository; a vector it produced is fed to Solidity,
+which re-derives the EIP-712 digest and recovers the payer with \texttt{ecrecover}, while
+the Python suite reads those constants back out of the Solidity file and regenerates them.
+Editing either side to fit the other fails one of the two tests.
+
+\begin{lstlisting}
+$ forge test
+46 passed; 0 failed
+$ pytest tests -q
+53 passed
+$ ./scripts/devnet.sh
+agent #1  evidence     -> CORRECT  +110 tUSD, collateral returned, 100%
+agent #2  stale-cache  -> WRONG    50 tUSD collateral seized,        0%
+$ cast call $VAULT 'slashedOf(uint256)(uint256)' 2
+50
+\end{lstlisting}
+
+\section{Limitations}
+The system has not yet been deployed to Base Sepolia: no funded testnet key was available in
+this environment, so there is no explorer link, and what has actually been executed is the
+local devnet run described above; the RPC adapter is network-agnostic and the same code path
+runs against Base Sepolia once a funded key is supplied, which is the milestone-1 target. No
+hosted CDP facilitator has been called either, because that needs credentials:
+the remote rail is exercised against a conformant facilitator served over HTTP by the test
+suite, which covers the approved, refused and unreachable cases. Verification can be remote
+but settlement cannot, because \texttt{claimTask} consumes the authorisation itself; a
+facilitator that broadcast it first would burn the nonce and make the claim impossible.
+
+Ground truth is still supplied by the poster under a commitment. The commitment binds the
+poster to one value in advance and the reveal timeout removes the incentive to withhold,
+but neither proves the value is real; sourcing truth from an oracle or a dispute game is the
+obvious next step. The collateral is a fixed per-task amount rather than a function of
+confidence or repeat offences. The resolver is a deterministic evidence parser rather than a
+model, which is a choice made for reproducibility in front of a reviewer: a model fits
+behind the same \texttt{decide(claim, evidence)} interface, and the arena does not care how a
+verdict was formed. Finally, the ERC-8004 registries here are a self-contained
+implementation of the standard's structure rather than the reference deployment, and they
+omit optional parts of it; \texttt{docs/HONESTY.md} enumerates exactly which.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
