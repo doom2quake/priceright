@@ -1,0 +1,414 @@
+<!-- PriceRight - an accountability layer for x402 agent commerce on Base.
+     A resolver agent buys the right to answer with a signed x402 payment, bonds
+     collateral against its ERC-8004 identity, and loses that collateral when its
+     committed verdict misses the revealed truth. Testnet only (Base Sepolia).
+     Self-contained: no network, no fonts, no CDN. The run shown on the left is a
+     recording of a real execution (see docs/HONESTY.md); the panel on the right
+     recomputes the settlement rule in-page. -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PriceRight - accountability for x402 agents on Base</title>
+<style>
+  :root{
+    --bg:#0b0710; --panel:#160f1f; --panel2:#100a18; --line:#2a1d38;
+    --ink:#f3ecf9; --dim:#9a86b4; --accent:#c04cff; --accent2:#ff6ad5;
+    --pass:#3ce8a0; --fail:#ff4d6d; --warn:#ffb84d; --pay:#5db8ff;
+    --mono:"SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 640px at 82% -12%,#26123a 0,var(--bg) 58%);
+    color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 64px}
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .logo{font-weight:800;font-size:23px;letter-spacing:-.02em}
+  .logo b{color:var(--accent2)}
+  .tag{color:var(--dim);font-size:13px;max-width:560px}
+  .net{margin-left:auto;font:12px/1 var(--mono);color:var(--pay);border:1px solid var(--line);
+    padding:6px 10px;border-radius:999px;background:var(--panel2)}
+  .rails{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .rail{font:11.5px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:var(--panel2)}
+  .rail b{color:var(--accent2)}
+  .grid{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-top:18px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:14px;padding:16px 16px 18px}
+  .card h2{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);font-weight:700}
+  .card .sub{font-size:12px;color:var(--dim);margin-bottom:12px}
+  .card .sub b{color:var(--accent2)}
+  .task{background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+  .task .claim{font-size:16px;font-weight:600}
+  .task .meta{font:12px var(--mono);color:var(--dim);margin-top:6px;word-break:break-all}
+  .agent{border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:12px;background:var(--panel2)}
+  .agent.win{border-color:rgba(60,232,160,.4)}
+  .agent.lose{border-color:rgba(255,77,109,.45)}
+  .agent .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .agent .who{font-weight:700}
+  .pill{font:11px var(--mono);border-radius:999px;padding:3px 9px;border:1px solid var(--line);color:var(--dim)}
+  .pill.ok{color:var(--pass);border-color:rgba(60,232,160,.45)}
+  .pill.bad{color:var(--fail);border-color:rgba(255,77,109,.5)}
+  .kvs{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin-top:9px}
+  .kvs .k{color:var(--dim);font:11.5px var(--mono)}
+  .kvs .v{font:11.5px/1.5 var(--mono);word-break:break-all}
+  .kvs .v.pay{color:var(--pay)} .kvs .v.ok{color:var(--pass)} .kvs .v.bad{color:var(--fail)}
+  .row{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{background:var(--panel2);border:0;color:var(--dim);padding:9px 16px;cursor:pointer;font-weight:700;font-size:14px}
+  .seg button.on{color:#120a18}
+  .seg button.on.yes{background:var(--pass)}
+  .seg button.on.no{background:var(--fail);color:#fff}
+  .lbl{font:11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  button.primary{cursor:pointer;font-weight:700;border-radius:10px;border:1px solid var(--accent);
+    background:linear-gradient(180deg,#a23be0,#7a24b0);color:#fff;padding:11px 18px;font-size:15px;margin-left:auto}
+  button.primary:hover{filter:brightness(1.12)}
+  button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+  .reason{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--ink);
+    font:12.5px/1.55 var(--mono);padding:11px;margin-top:4px;min-height:82px;resize:vertical}
+  .hint{font-size:12px;color:var(--dim);margin-top:6px}
+  .verdictbar{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .badge{font-weight:800;letter-spacing:.02em;padding:10px 16px;border-radius:11px;font-size:16px}
+  .badge.pass{background:rgba(60,232,160,.13);color:var(--pass);border:1px solid rgba(60,232,160,.42)}
+  .badge.fail{background:rgba(255,77,109,.14);color:var(--fail);border:1px solid rgba(255,77,109,.5)}
+  .badge.idle{background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+  .badge.fail.hit{animation:shake .5s}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-5px)}}
+  .stakebar{margin-top:14px}
+  .stakebar .caps{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--dim);margin-bottom:5px}
+  .track{height:16px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+  .fill{height:100%;width:100%;background:linear-gradient(90deg,var(--pass),#2bbf85);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .fill.slashed{background:linear-gradient(90deg,var(--fail),#b3253f)}
+  .repline{font:12px var(--mono);color:var(--dim);margin-top:7px}
+  .repline b.pass{color:var(--pass)} .repline b.fail{color:var(--fail)}
+  .hist{font:11.5px/1.6 var(--mono);max-height:280px;overflow:auto;margin-top:6px}
+  .hist .h{display:grid;grid-template-columns:150px 1fr auto;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .hist .h:last-child{border-bottom:0}
+  .hist .ev{color:var(--accent2)} .hist .ev.bad{color:var(--fail)} .hist .ev.pay{color:var(--pay)}
+  .hist .d{color:var(--dim);word-break:break-all}
+  .hist .tx{color:var(--pay);opacity:.8}
+  .verify{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    font:11.5px/1.7 var(--mono);color:var(--dim);white-space:pre-wrap;word-break:break-all}
+  .verify b{color:var(--accent2)}
+  .foot{margin-top:22px;color:var(--dim);font-size:12.5px;text-align:center}
+  .foot b{color:var(--accent2)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="logo">Price<b>Right</b></div>
+    <div class="tag">an accountability layer for x402 agent commerce on Base: a resolver buys the right to answer with a signed x402 payment, bonds collateral against its ERC-8004 identity, and loses it when its committed verdict misses the revealed truth</div>
+    <div class="net" id="net">-</div>
+  </header>
+  <div class="rails">
+    <div class="rail"><b>x402</b> exact scheme, EIP-3009 authorisation on Base USDC</div>
+    <div class="rail"><b>ERC-8004</b> ERC-721 identity + feedback + validation</div>
+    <div class="rail"><b>CDP AgentKit</b> ready · collateral vault, deterministic slashing</div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Recorded run</h2>
+      <div class="sub" id="recsub">-</div>
+      <div class="task">
+        <div class="claim" id="claim">-</div>
+        <div class="meta" id="taskmeta">-</div>
+      </div>
+      <div id="agents"></div>
+      <h2 style="margin-top:14px">On-chain events from this run</h2>
+      <div class="hist" id="events"></div>
+      <div class="verify" id="verify"></div>
+    </section>
+
+    <section class="card">
+      <h2>Settlement rule, recomputed here</h2>
+      <div class="sub">This panel does not send a transaction. It applies the same pure
+        function the contract applies, <b>correct = (committed == truth)</b>, against the
+        truth the poster revealed in the recorded run, and hashes your reasoning with a
+        keccak-256 that matches Solidity byte for byte.</div>
+
+      <div class="row">
+        <span class="lbl">Your verdict</span>
+        <div class="seg" role="group" aria-label="verdict">
+          <button id="vYes" class="on yes" onclick="setVerdict('Yes')">Yes</button>
+          <button id="vNo" onclick="setVerdict('No')">No</button>
+        </div>
+        <button class="primary" id="playBtn" onclick="play()">Apply the rule</button>
+      </div>
+
+      <span class="lbl">Reasoning (this is what gets hashed at commit)</span>
+      <textarea id="reason" class="reason" spellcheck="false" aria-label="reasoning"></textarea>
+      <div class="hint" id="hashline">keccak256 -</div>
+
+      <div class="verdictbar">
+        <span class="badge idle" id="badge">pick a verdict</span>
+        <span id="delta" class="repline"></span>
+      </div>
+
+      <div class="stakebar">
+        <div class="caps"><span>bonded collateral</span><span id="stakeTxt">-</span></div>
+        <div class="track"><div class="fill" id="stakeFill"></div></div>
+        <div class="repline">ERC-8004 score <b id="repVal" class="pass">100%</b>
+          <span id="repCount"></span></div>
+      </div>
+
+      <h2 style="margin-top:16px">The x402 header the resolver sent</h2>
+      <div class="verify" id="header402"></div>
+
+      <h2 style="margin-top:16px">What the arena refuses</h2>
+      <div class="hist">
+        <div class="h"><span class="ev">replay</span><span class="d">the same authorisation on a second task: the nonce commits to (arena, chain, task, agent)</span><span class="tx">X402Payment.t.sol</span></div>
+        <div class="h"><span class="ev">tampering</span><span class="d">a stretched validity window still fails ecrecover, so the payer is not recovered</span><span class="tx">test_x402.py</span></div>
+        <div class="h"><span class="ev">guessing</span><span class="d">evidence that does not cover the claim: the resolver abstains and pays nothing</span><span class="tx">test_priceright.py</span></div>
+        <div class="h"><span class="ev bad">stalling</span><span class="d">a resolver that never commits, or a poster that never reveals: anyone can call the timeout</span><span class="tx">AgentArena.t.sol</span></div>
+        <div class="h"><span class="ev">stranding</span><span class="d">every terminal path releases or slashes the collateral; the contracts end each task empty</span><span class="tx">AgentArena.t.sol</span></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot">
+    PriceRight · x402 exact-scheme payments + ERC-8004 slashing on Base · Base Sepolia testnet only ·
+    contracts in <b>src/</b>, honesty note in <b>docs/HONESTY.md</b>
+  </div>
+</div>
+
+<script>
+/* ---- pure-JS keccak-256 (Ethereum variant) so the reasoning hash is real, no crypto.subtle.
+       Keccak-f[1600] round constants + a verified 64-bit-lane permutation (matches Solidity
+       keccak256 on the empty/"abc" vectors and the Python engine's fixtures). ---- */
+var _HEX='0123456789abcdef'.split('');
+var _RC=[1,0,32898,0,32906,2147483648,2147516416,2147483648,32907,0,2147483649,0,2147516545,2147483648,32777,2147483648,138,0,136,0,2147516425,0,2147483658,0,2147516555,0,139,2147483648,32905,2147483648,32771,2147483648,32770,2147483648,128,2147483648,32778,0,2147483658,2147483648,2147516545,2147483648,32896,2147483648,2147483649,0,2147516424,2147483648];
+function keccak256(msg){
+  var s=new Array(50).fill(0),rate=136,blockCount=rate>>2,i,off;
+  var m=msg.slice();m.push(0x01);while(m.length%rate!==0)m.push(0);m[m.length-1]|=0x80;
+  for(off=0;off<m.length;off+=rate){
+    for(i=0;i<blockCount;i++){s[i]^=m[off+i*4]|(m[off+i*4+1]<<8)|(m[off+i*4+2]<<16)|(m[off+i*4+3]<<24);}
+    _f(s);
+  }
+  var hex='';for(i=0;i<8;i++){var v=s[i];
+    hex+=_HEX[(v>>4)&15]+_HEX[v&15]+_HEX[(v>>12)&15]+_HEX[(v>>8)&15]+_HEX[(v>>20)&15]+_HEX[(v>>16)&15]+_HEX[(v>>28)&15]+_HEX[(v>>24)&15];}
+  return '0x'+hex;
+}
+function _f(s){
+  var h,l,n,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9;
+  var b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13,b14,b15,b16,b17,b18,b19,b20,b21,b22,b23,b24,b25,b26,b27,b28,b29,b30,b31,b32,b33,b34,b35,b36,b37,b38,b39,b40,b41,b42,b43,b44,b45,b46,b47,b48,b49;
+  for(n=0;n<48;n+=2){
+    c0=s[0]^s[10]^s[20]^s[30]^s[40];c1=s[1]^s[11]^s[21]^s[31]^s[41];
+    c2=s[2]^s[12]^s[22]^s[32]^s[42];c3=s[3]^s[13]^s[23]^s[33]^s[43];
+    c4=s[4]^s[14]^s[24]^s[34]^s[44];c5=s[5]^s[15]^s[25]^s[35]^s[45];
+    c6=s[6]^s[16]^s[26]^s[36]^s[46];c7=s[7]^s[17]^s[27]^s[37]^s[47];
+    c8=s[8]^s[18]^s[28]^s[38]^s[48];c9=s[9]^s[19]^s[29]^s[39]^s[49];
+    h=c8^((c2<<1)|(c3>>>31));l=c9^((c3<<1)|(c2>>>31));
+    s[0]^=h;s[1]^=l;s[10]^=h;s[11]^=l;s[20]^=h;s[21]^=l;s[30]^=h;s[31]^=l;s[40]^=h;s[41]^=l;
+    h=c0^((c4<<1)|(c5>>>31));l=c1^((c5<<1)|(c4>>>31));
+    s[2]^=h;s[3]^=l;s[12]^=h;s[13]^=l;s[22]^=h;s[23]^=l;s[32]^=h;s[33]^=l;s[42]^=h;s[43]^=l;
+    h=c2^((c6<<1)|(c7>>>31));l=c3^((c7<<1)|(c6>>>31));
+    s[4]^=h;s[5]^=l;s[14]^=h;s[15]^=l;s[24]^=h;s[25]^=l;s[34]^=h;s[35]^=l;s[44]^=h;s[45]^=l;
+    h=c4^((c8<<1)|(c9>>>31));l=c5^((c9<<1)|(c8>>>31));
+    s[6]^=h;s[7]^=l;s[16]^=h;s[17]^=l;s[26]^=h;s[27]^=l;s[36]^=h;s[37]^=l;s[46]^=h;s[47]^=l;
+    h=c6^((c0<<1)|(c1>>>31));l=c7^((c1<<1)|(c0>>>31));
+    s[8]^=h;s[9]^=l;s[18]^=h;s[19]^=l;s[28]^=h;s[29]^=l;s[38]^=h;s[39]^=l;s[48]^=h;s[49]^=l;
+    b0=s[0];b1=s[1];
+    b32=(s[11]<<4)|(s[10]>>>28);b33=(s[10]<<4)|(s[11]>>>28);
+    b14=(s[20]<<3)|(s[21]>>>29);b15=(s[21]<<3)|(s[20]>>>29);
+    b46=(s[31]<<9)|(s[30]>>>23);b47=(s[30]<<9)|(s[31]>>>23);
+    b28=(s[40]<<18)|(s[41]>>>14);b29=(s[41]<<18)|(s[40]>>>14);
+    b20=(s[2]<<1)|(s[3]>>>31);b21=(s[3]<<1)|(s[2]>>>31);
+    b2=(s[13]<<12)|(s[12]>>>20);b3=(s[12]<<12)|(s[13]>>>20);
+    b34=(s[22]<<10)|(s[23]>>>22);b35=(s[23]<<10)|(s[22]>>>22);
+    b16=(s[33]<<13)|(s[32]>>>19);b17=(s[32]<<13)|(s[33]>>>19);
+    b48=(s[42]<<2)|(s[43]>>>30);b49=(s[43]<<2)|(s[42]>>>30);
+    b40=(s[5]<<30)|(s[4]>>>2);b41=(s[4]<<30)|(s[5]>>>2);
+    b22=(s[14]<<6)|(s[15]>>>26);b23=(s[15]<<6)|(s[14]>>>26);
+    b4=(s[25]<<11)|(s[24]>>>21);b5=(s[24]<<11)|(s[25]>>>21);
+    b36=(s[34]<<15)|(s[35]>>>17);b37=(s[35]<<15)|(s[34]>>>17);
+    b18=(s[45]<<29)|(s[44]>>>3);b19=(s[44]<<29)|(s[45]>>>3);
+    b10=(s[6]<<28)|(s[7]>>>4);b11=(s[7]<<28)|(s[6]>>>4);
+    b42=(s[17]<<23)|(s[16]>>>9);b43=(s[16]<<23)|(s[17]>>>9);
+    b24=(s[26]<<25)|(s[27]>>>7);b25=(s[27]<<25)|(s[26]>>>7);
+    b6=(s[36]<<21)|(s[37]>>>11);b7=(s[37]<<21)|(s[36]>>>11);
+    b38=(s[47]<<24)|(s[46]>>>8);b39=(s[46]<<24)|(s[47]>>>8);
+    b30=(s[8]<<27)|(s[9]>>>5);b31=(s[9]<<27)|(s[8]>>>5);
+    b12=(s[18]<<20)|(s[19]>>>12);b13=(s[19]<<20)|(s[18]>>>12);
+    b44=(s[29]<<7)|(s[28]>>>25);b45=(s[28]<<7)|(s[29]>>>25);
+    b26=(s[38]<<8)|(s[39]>>>24);b27=(s[39]<<8)|(s[38]>>>24);
+    b8=(s[48]<<14)|(s[49]>>>18);b9=(s[49]<<14)|(s[48]>>>18);
+    s[0]=b0^(~b2&b4);s[1]=b1^(~b3&b5);
+    s[10]=b10^(~b12&b14);s[11]=b11^(~b13&b15);
+    s[20]=b20^(~b22&b24);s[21]=b21^(~b23&b25);
+    s[30]=b30^(~b32&b34);s[31]=b31^(~b33&b35);
+    s[40]=b40^(~b42&b44);s[41]=b41^(~b43&b45);
+    s[2]=b2^(~b4&b6);s[3]=b3^(~b5&b7);
+    s[12]=b12^(~b14&b16);s[13]=b13^(~b15&b17);
+    s[22]=b22^(~b24&b26);s[23]=b23^(~b25&b27);
+    s[32]=b32^(~b34&b36);s[33]=b33^(~b35&b37);
+    s[42]=b42^(~b44&b46);s[43]=b43^(~b45&b47);
+    s[4]=b4^(~b6&b8);s[5]=b5^(~b7&b9);
+    s[14]=b14^(~b16&b18);s[15]=b15^(~b17&b19);
+    s[24]=b24^(~b26&b28);s[25]=b25^(~b27&b29);
+    s[34]=b34^(~b36&b38);s[35]=b35^(~b37&b39);
+    s[44]=b44^(~b46&b48);s[45]=b45^(~b47&b49);
+    s[6]=b6^(~b8&b0);s[7]=b7^(~b9&b1);
+    s[16]=b16^(~b18&b10);s[17]=b17^(~b19&b11);
+    s[26]=b26^(~b28&b20);s[27]=b27^(~b29&b21);
+    s[36]=b36^(~b38&b30);s[37]=b37^(~b39&b31);
+    s[46]=b46^(~b48&b40);s[47]=b47^(~b49&b41);
+    s[8]=b8^(~b0&b2);s[9]=b9^(~b1&b3);
+    s[18]=b18^(~b10&b12);s[19]=b19^(~b11&b13);
+    s[28]=b28^(~b20&b22);s[29]=b29^(~b21&b23);
+    s[38]=b38^(~b30&b32);s[39]=b39^(~b31&b33);
+    s[48]=b48^(~b40&b42);s[49]=b49^(~b41&b43);
+    s[0]^=_RC[n];s[1]^=_RC[n+1];
+  }
+}
+function utf8(str){
+  if(typeof TextEncoder!=='undefined'){return Array.from(new TextEncoder().encode(str));}
+  // polyfill for older engines (e.g. the headless renderer used for screenshots)
+  var out=[],i,c;
+  for(i=0;i<str.length;i++){
+    c=str.charCodeAt(i);
+    if(c<0x80)out.push(c);
+    else if(c<0x800){out.push(0xc0|(c>>6),0x80|(c&0x3f));}
+    else if(c>=0xd800&&c<0xdc00){
+      var c2=str.charCodeAt(++i);var cp=0x10000+((c&0x3ff)<<10)+(c2&0x3ff);
+      out.push(0xf0|(cp>>18),0x80|((cp>>12)&0x3f),0x80|((cp>>6)&0x3f),0x80|(cp&0x3f));
+    } else {out.push(0xe0|(c>>12),0x80|((c>>6)&0x3f),0x80|(c&0x3f));}
+  }
+  return out;
+}
+function keccakHex(str){return keccak256(utf8(str));}
+/* ---- the recorded run. Regenerated by:
+       priceright record --out docs/run.json --inject ui/index.html
+   Against a live node the tx hashes below are real and `simulated` is false. ---- */
+/*RUN_RECORD_START*/
+const RUN={"generated_by":"priceright record","simulated":true,"backend":"in-memory","chain_id":31337,"rpc":"","contracts":{"token":"0x5FbDB2315678afecb367f032d93F642f64180aa3","identity":"0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512","reputation":"0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0","validation":"0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9","vault":"0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9","arena":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"},"claim":"Settle: ETH/USD >= 4000 @ block 21451200","evidence":["chainlink-eth-usd  block=21451200  ETH/USD=4127.50","pyth-eth-usd       block=21451200  ETH/USD=4126.10","uniswap-twap       block=21451200  ETH/USD=4131.22"],"runs":[{"agent_id":1,"address":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","policy":"evidence","task_id":1,"bounty":100,"fee":10,"collateral":50,"truth_commit":"0xb50ed9ed0ebe08ac420e37f20d1b3c5e38e2cbb040391b55c01a2cac5daf7b06","status":"committed","verdict":"Yes","reasoning":"Claim: ETH/USD >= 4000 at block 21451200\nReadings used (3 from chainlink-eth-usd, pyth-eth-usd, uniswap-twap): 4127.5, 4126.1, 4131.22\nMedian 4127.5 >= 4000 is True. Verdict: Yes.","reasoning_hash":"0xed642468c7547482d0f6ff125d2786bdfe5245413c02cb87466e91e02106ccbe","x402":{"status":402,"scheme":"exact","network":"in-memory","amount":10,"asset":"0x5FbDB2315678afecb367f032d93F642f64180aa3","pay_to":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","nonce":"0x32fea67083198ec3667911aa7f9a51b425be171bc5c5be56a69df90ef01fa2b8","signature":"0x6af66bde20ecfb854f38ca2d411fbcf949a343288bb7e88b0bf8ef57c61e03fa3ae21389c5851eda2ed897b14e99f6041b3bf374afbb1490af605a8c0ac575241b","payment_header":"eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiaW4tbWVtb3J5IiwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweDZhZjY2YmRlMjBlY2ZiODU0ZjM4Y2EyZDQxMWZiY2Y5NDlhMzQzMjg4YmI3ZTg4YjBiZjhlZjU3YzYxZTAzZmEzYWUyMTM4OWM1ODUxZWRhMmVkODk3YjE0ZTk5ZjYwNDFiM2JmMzc0YWZiYjE0OTBhZjYwNWE4YzBhYzU3NTI0MWIiLCJhdXRob3JpemF0aW9uIjp7ImZyb20iOiIweGYzOUZkNmU1MWFhZDg4RjZGNGNlNmFCODgyNzI3OWNmZkZiOTIyNjYiLCJ0byI6IjB4NUZDOGQzMjY5MGNjOTFENGMzOWQ5ZDNhYmNCRDE2OTg5Rjg3NTcwNyIsInZhbHVlIjoiMTAiLCJ2YWxpZEFmdGVyIjoiMCIsInZhbGlkQmVmb3JlIjoiMTc4NzY0OTQ2NiIsIm5vbmNlIjoiMHgzMmZlYTY3MDgzMTk4ZWMzNjY3OTExYWE3ZjlhNTFiNDI1YmUxNzFiYzVjNWJlNTZhNjlkZjkwZWYwMWZhMmI4In19fQ==","payment_response":"eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4MWFiODIwNjM2YjI2NTBjNTRjYzg5ZWM5M2M1OTA4NTAwZGUxNjVkYTZkODgzNTkyZDZmNGZjNmVkNTk3OTI3MSIsIm5ldHdvcmsiOiJpbi1tZW1vcnkiLCJwYXllciI6IjB4ZjM5RmQ2ZTUxYWFkODhGNkY0Y2U2YUI4ODI3Mjc5Y2ZmRmI5MjI2NiIsImVycm9yUmVhc29uIjpudWxsfQ==","settle_tx":"0x1ab820636b2650c54cc89ec93c5908500de165da6d883592d6f4fc6ed5979271"},"bonded":50,"commit_tx":"0xba94f04621e43ae1b1165b8f80b26c49cdda16966f0734d99d324aef6a7d12f6","settlement":{"revealed_truth":"Yes","committed":"Yes","correct":true,"reward_paid":110,"collateral_returned":50,"slashed":0,"stake_before":50,"stake_after":0,"score_before":100,"score_after":100,"tx":"0x61ee9a895718b0f5951f53c8ecac8a7e4eae8599d8af0d0ea0d906a0cdc725f8"},"reputation":{"agent_id":1,"feedback_count":1,"score":100,"stake":0,"slashed":0}},{"agent_id":2,"address":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","policy":"stale-cache","task_id":2,"bounty":100,"fee":10,"collateral":50,"truth_commit":"0x9b210ac9f236b4b0abf2ae2ed0296996c0199c20f53755bef7ab82d495b7923b","status":"committed","verdict":"No","reasoning":"Claim: ETH/USD >= 4000 at block 21451200\nSkipped the evidence lookup and used a cached quote: ETH/USD=3805 (last week).\nCached 3805 >= 4000 is False. Verdict: No.","reasoning_hash":"0x8ed7c1b28b4e9b2e0b6e2f556ef987eb1d96fbc94778316239f588f2f2a98395","x402":{"status":402,"scheme":"exact","network":"in-memory","amount":10,"asset":"0x5FbDB2315678afecb367f032d93F642f64180aa3","pay_to":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","nonce":"0x1f4fbad71e69e1f43417473f60a8df1cbec6bc8151a53546a7a2c07026eaf16e","signature":"0xa2ee62b3b4a0f45e03495ab0432423d7a6e883726ba3d7ff411e5124097d4af531676d43e48b13aeaa29f74a73ce057d68293d061ca1cf6394ae3cc2d831bc711c","payment_header":"eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiaW4tbWVtb3J5IiwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweGEyZWU2MmIzYjRhMGY0NWUwMzQ5NWFiMDQzMjQyM2Q3YTZlODgzNzI2YmEzZDdmZjQxMWU1MTI0MDk3ZDRhZjUzMTY3NmQ0M2U0OGIxM2FlYWEyOWY3NGE3M2NlMDU3ZDY4MjkzZDA2MWNhMWNmNjM5NGFlM2NjMmQ4MzFiYzcxMWMiLCJhdXRob3JpemF0aW9uIjp7ImZyb20iOiIweDNDNDRDZERkQjZhOTAwZmEyYjU4NWRkMjk5ZTAzZDEyRkE0MjkzQkMiLCJ0byI6IjB4NUZDOGQzMjY5MGNjOTFENGMzOWQ5ZDNhYmNCRDE2OTg5Rjg3NTcwNyIsInZhbHVlIjoiMTAiLCJ2YWxpZEFmdGVyIjoiMCIsInZhbGlkQmVmb3JlIjoiMTc4NzY0OTQ2NiIsIm5vbmNlIjoiMHgxZjRmYmFkNzFlNjllMWY0MzQxNzQ3M2Y2MGE4ZGYxY2JlYzZiYzgxNTFhNTM1NDZhN2EyYzA3MDI2ZWFmMTZlIn19fQ==","payment_response":"eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4NWYyMDg4Zjc2NmQxOGYxZDI2ZDgyZjI3MWNhZDdiNTE0OGIxODY2MTNhYzdkM2U2ZjgxYTRjYmQxNWM3ZmZjNyIsIm5ldHdvcmsiOiJpbi1tZW1vcnkiLCJwYXllciI6IjB4M0M0NENkRGRCNmE5MDBmYTJiNTg1ZGQyOTllMDNkMTJGQTQyOTNCQyIsImVycm9yUmVhc29uIjpudWxsfQ==","settle_tx":"0x5f2088f766d18f1d26d82f271cad7b5148b186613ac7d3e6f81a4cbd15c7ffc7"},"bonded":50,"commit_tx":"0xdc24fcf5b5ec8bf0f564c828bbea0eba4d0b66428adf9e553d3ffc8e3bd90012","settlement":{"revealed_truth":"Yes","committed":"No","correct":false,"reward_paid":0,"collateral_returned":0,"slashed":50,"stake_before":50,"stake_after":0,"score_before":100,"score_after":0,"tx":"0xb79870f608f36bdc13f3741fcb76f266b743cfaf0dc89c3cda820203871ac0f8"},"reputation":{"agent_id":2,"feedback_count":1,"score":0,"stake":0,"slashed":50}}],"events":[{"event":"Registered","agent_id":1,"tokenURI":"ipfs://priceright/resolver-card","owner":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},{"event":"Registered","agent_id":2,"tokenURI":"ipfs://priceright/resolver-card","owner":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"},{"event":"TaskPosted","task_id":1,"poster":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","bounty":100,"fee":10,"slash":50},{"event":"X402PaymentSettled","task_id":1,"payer":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","amount":10,"nonce":"0x32fea67083198ec3667911aa7f9a51b425be171bc5c5be56a69df90ef01fa2b8"},{"event":"Bonded","bond_key":"0xb689b7fb27041302cb3f75ab02fdfc43b274e2d4faa9d0959400e9b9af08e7ee","agent_id":1,"amount":50},{"event":"TaskClaimed","task_id":1,"agent_id":1,"resolver":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","fee":10,"bonded":50,"commit_deadline":1787652766},{"event":"VerdictCommitted","task_id":1,"agent_id":1,"verdict":"Yes","reasoning_hash":"0xed642468c7547482d0f6ff125d2786bdfe5245413c02cb87466e91e02106ccbe","settle_deadline":1787656366},{"event":"ValidationRequest","agent_id":1,"validator":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","request_hash":"0x097acb60b5e5c16f3118139c1b3da2310013077ac11b315dd56ebd569998005f"},{"event":"Released","bond_key":"0xb689b7fb27041302cb3f75ab02fdfc43b274e2d4faa9d0959400e9b9af08e7ee","agent_id":1,"amount":50},{"event":"Credited","account":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","amount":160,"balance":160},{"event":"NewFeedback","agent_id":1,"client":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","score":100,"tag1":"priceright.settlement","tag2":"correct"},{"event":"TaskSettled","task_id":1,"agent_id":1,"correct":true,"truth":"Yes","slashed":0,"reward":110},{"event":"TaskPosted","task_id":2,"poster":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","bounty":100,"fee":10,"slash":50},{"event":"X402PaymentSettled","task_id":2,"payer":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","amount":10,"nonce":"0x1f4fbad71e69e1f43417473f60a8df1cbec6bc8151a53546a7a2c07026eaf16e"},{"event":"Bonded","bond_key":"0xff5947d7a4ec2028c11acdc393c2c3f98f4905f17cd7fc58638800d5513f694a","agent_id":2,"amount":50},{"event":"TaskClaimed","task_id":2,"agent_id":2,"resolver":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","fee":10,"bonded":50,"commit_deadline":1787652766},{"event":"VerdictCommitted","task_id":2,"agent_id":2,"verdict":"No","reasoning_hash":"0x8ed7c1b28b4e9b2e0b6e2f556ef987eb1d96fbc94778316239f588f2f2a98395","settle_deadline":1787656366},{"event":"ValidationRequest","agent_id":2,"validator":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","request_hash":"0xd11a780993603247d56e2971b9f9b8115cc7e2b0c52a0023b94bc774e23db214"},{"event":"Slashed","bond_key":"0xff5947d7a4ec2028c11acdc393c2c3f98f4905f17cd7fc58638800d5513f694a","agent_id":2,"amount":50},{"event":"Credited","account":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","amount":160,"balance":160},{"event":"NewFeedback","agent_id":2,"client":"0x5FC8d32690cc91D4c39d9d3abcBD16989F875707","score":0,"tag1":"priceright.settlement","tag2":"wrong"},{"event":"TaskSettled","task_id":2,"agent_id":2,"correct":false,"truth":"Yes","slashed":50,"reward":0}],"ledger":{"poster":{"address":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","withdrawable":160},"agents":[{"agent_id":1,"address":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","withdrawable":160},{"agent_id":2,"address":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","withdrawable":0}]}};
+/*RUN_RECORD_END*/
+
+const $=id=>document.getElementById(id);
+const short=(h,n)=>!h?'-':(h.length<=n+8?h:h.slice(0,n)+'...'+h.slice(-6));
+function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!==undefined)d.innerHTML=html;return d;}
+
+/* ---- left: render the recording ---- */
+const settled=RUN.runs.filter(r=>r.settlement);
+const winner=settled.find(r=>r.settlement.correct);
+const loser=settled.find(r=>!r.settlement.correct);
+const truth=(loser||winner||{settlement:{revealed_truth:'Yes'}}).settlement.revealed_truth;
+
+$('net').textContent = RUN.simulated
+  ? 'in-memory mirror (no node configured)'
+  : RUN.backend+' · chain '+RUN.chain_id;
+$('recsub').innerHTML = RUN.simulated
+  ? 'Recorded against the <b>in-memory mirror</b>: the same state machine, executed in process. Run <b>scripts/devnet.sh</b> to regenerate this against a live node and the hashes below become real transactions.'
+  : 'Recorded against <b>'+RUN.backend+'</b>. Every hash below is a transaction on that node, and every number was read back out of the contracts afterwards.';
+$('claim').textContent = RUN.claim||'-';
+$('taskmeta').innerHTML = (RUN.evidence||[]).map(e=>'evidence · '+e).join('<br/>')
+  + '<br/>arena ' + (RUN.contracts?RUN.contracts.arena:'-')
+  + '<br/>truth committed as ' + (RUN.runs[0]?short(RUN.runs[0].truth_commit,22):'-');
+
+const agentsEl=$('agents');
+RUN.runs.forEach(r=>{
+  const ok=r.settlement && r.settlement.correct;
+  const box=el('div','agent '+(r.settlement?(ok?'win':'lose'):''));
+  const top=el('div','top');
+  top.appendChild(el('span','who','ERC-8004 agent #'+r.agent_id));
+  top.appendChild(el('span','pill',r.policy+' policy'));
+  if(r.settlement) top.appendChild(el('span','pill '+(ok?'ok':'bad'), ok?'PAID +'+r.settlement.reward_paid+' tUSD':'SLASHED -'+r.settlement.slashed+' tUSD'));
+  box.appendChild(top);
+  const kvs=el('div','kvs');
+  const add=(k,v,cls)=>{kvs.appendChild(el('div','k',k));kvs.appendChild(el('div','v'+(cls?' '+cls:''),v));};
+  add('verdict', r.verdict);
+  if(r.x402){
+    add('x402', r.x402.status+' '+r.x402.scheme+' · '+r.x402.amount+' tUSD','pay');
+    add('nonce', short(r.x402.nonce,22),'pay');
+    add('payment tx', short(r.x402.settle_tx,24),'pay');
+  }
+  add('collateral', (r.bonded||0)+' tUSD bonded');
+  add('reasoning', short(r.reasoning_hash,24));
+  if(r.commit_tx) add('commit tx', short(r.commit_tx,24));
+  if(r.settlement){
+    add('settle tx', short(r.settlement.tx,24));
+    add('outcome', 'truth '+r.settlement.revealed_truth+' vs committed '+r.settlement.committed
+       + ' · collateral '+r.settlement.stake_before+' -> '+r.settlement.stake_after+' tUSD', ok?'ok':'bad');
+    add('score', r.settlement.score_before+'% -> '+r.settlement.score_after+'%', ok?'ok':'bad');
+  } else {
+    add('outcome', r.status+(r.reason?' · '+r.reason:''));
+  }
+  box.appendChild(kvs);
+  agentsEl.appendChild(box);
+});
+
+const evEl=$('events');
+(RUN.events||[]).forEach(e=>{
+  const bad=/Slashed|TimedOut/.test(e.event);
+  const pay=/X402|Bonded|Credited|Withdrawn|Authorization/.test(e.event);
+  const detail=Object.keys(e).filter(k=>!['event','address','tx','block','topic1','topic2','topic3'].includes(k))
+    .map(k=>k+'='+e[k]).join(' ');
+  const row=el('div','h');
+  row.appendChild(el('span','ev '+(bad?'bad':(pay?'pay':'')),e.event));
+  row.appendChild(el('span','d',detail||(e.address?'at '+short(e.address,10):'')));
+  row.appendChild(el('span','tx',e.tx?short(e.tx,10):''));
+  evEl.appendChild(row);
+});
+if(!(RUN.events||[]).length) evEl.appendChild(el('div','h','<span class="d">no recording yet - run scripts/devnet.sh</span>'));
+
+$('verify').innerHTML = RUN.simulated
+  ? 'Reproduce: <b>./scripts/devnet.sh</b> deploys these contracts to a local anvil node and replays this run with real transactions.'
+  : 'Check it yourself:\n<b>cast logs --rpc-url '+(RUN.rpc||'http://127.0.0.1:8545')+" --from-block 0 'Slashed(bytes32,uint256,address,uint256)'</b>\n<b>cast call "
+    + (RUN.contracts?RUN.contracts.vault:'') + " 'slashedOf(uint256)(uint256)' " + (loser?loser.agent_id:2) + '</b>';
+
+const hdr=(RUN.runs.find(r=>r.x402)||{x402:{}}).x402.payment_header;
+$('header402').innerHTML = hdr
+  ? 'X-PAYMENT: ' + hdr.slice(0,180) + (hdr.length>180?'…':'')
+    + '\n\nbase64 of the x402 payload: scheme <b>exact</b>, an EIP-3009 authorisation signed by the resolver, nonce bound to this task.'
+  : 'no recording yet';
+
+/* ---- right: the settlement rule, recomputed in the browser ---- */
+const FEE=RUN.runs[0]?RUN.runs[0].fee:10, BOUNTY=RUN.runs[0]?RUN.runs[0].bounty:100;
+const BOND=RUN.runs[0]?RUN.runs[0].collateral:50;
+let verdict='Yes', rightN=0, wrongN=0;
+
+function reasoningFor(v){
+  const src=(v===truth?winner:loser);
+  if(src && src.reasoning) return src.reasoning;
+  return 'Claim: '+(RUN.claim||'')+'\nVerdict: '+v+'.';
+}
+function setVerdict(v){
+  verdict=v;
+  $('vYes').className = v==='Yes'?'on yes':'';
+  $('vNo').className = v==='No'?'on no':'';
+  $('reason').value=reasoningFor(v);
+  $('hashline').textContent='keccak256 '+keccakHex($('reason').value);
+}
+$('reason').addEventListener('input',()=>{$('hashline').textContent='keccak256 '+keccakHex($('reason').value);});
+
+function apply(animate){
+  const rHash=keccakHex($('reason').value);
+  const correct = verdict===truth;
+  $('hashline').textContent='keccak256 '+rHash;
+  const badge=$('badge'), fill=$('stakeFill');
+  if(correct){
+    rightN++;
+    badge.className='badge pass';
+    badge.textContent='CORRECT · +'+(FEE+BOUNTY)+' tUSD, collateral returned';
+    fill.className='fill'; fill.style.width='100%';
+    $('stakeTxt').textContent=BOND+' / '+BOND+' tUSD returned';
+    $('delta').innerHTML='committed '+verdict+' = revealed truth '+truth+' · <b class="pass">nothing slashed</b>';
+  }else{
+    wrongN++;
+    badge.className='badge fail'+(animate?' hit':'');
+    badge.textContent='WRONG · collateral SLASHED -'+BOND+' tUSD';
+    fill.className='fill slashed'; fill.style.width='0%';
+    $('stakeTxt').textContent='0 / '+BOND+' tUSD';
+    $('delta').innerHTML='committed '+verdict+' != revealed truth '+truth+' · <b class="fail">collateral moved to the poster</b>';
+  }
+  const total=rightN+wrongN, score= total===0?100:Math.round(rightN*100/total);
+  const rv=$('repVal'); rv.textContent=score+'%'; rv.className=score===100?'pass':'fail';
+  $('repCount').textContent='('+rightN+' correct · '+wrongN+' wrong in this panel)';
+}
+function play(){apply(true);}
+
+/* first paint: show the slashed state, which is the outcome worth looking at */
+setVerdict(truth==='Yes'?'No':'Yes');
+apply(false);
+
+/* sanity: the in-page keccak must match the standard vectors, or the hashes above are lies */
+console.assert(keccakHex('')==='0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470','keccak empty vector');
+console.assert(keccakHex('abc')==='0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45','keccak abc vector');
+</script>
