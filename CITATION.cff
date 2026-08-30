@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use PriceRight, please cite it."
+title: "PriceRight: An Accountability Layer for x402 Agent Commerce on Base"
+authors:
+  - family-names: Sarkar
+    given-names: Dipankar
+year: 2026
+url: "https://github.com/doom2quake/priceright"
+license: MIT
