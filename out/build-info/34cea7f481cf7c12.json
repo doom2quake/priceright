@@ -1,0 +1,1 @@
+{"id":"34cea7f481cf7c12","source_id_to_path":{"0":"src/AgentArena.sol","1":"src/AgentStakeVault.sol","2":"src/erc8004/IdentityRegistry.sol","3":"src/erc8004/ReputationRegistry.sol","4":"src/erc8004/ValidationRegistry.sol","5":"src/interfaces/IAgentRegistry.sol","6":"src/mocks/MockERC20.sol","7":"test/ArenaFixture.sol","8":"test/X402Payment.t.sol"},"language":"Solidity"}
