@@ -1,0 +1,299 @@
+{
+  "generated_by": "priceright record",
+  "simulated": true,
+  "backend": "in-memory",
+  "chain_id": 31337,
+  "rpc": "",
+  "contracts": {
+    "token": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "identity": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "reputation": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "validation": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "vault": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "arena": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+  },
+  "claim": "Settle: ETH/USD >= 4000 @ block 21451200",
+  "evidence": [
+    "chainlink-eth-usd  block=21451200  ETH/USD=4127.50",
+    "pyth-eth-usd       block=21451200  ETH/USD=4126.10",
+    "uniswap-twap       block=21451200  ETH/USD=4131.22"
+  ],
+  "runs": [
+    {
+      "agent_id": 1,
+      "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "policy": "evidence",
+      "task_id": 1,
+      "bounty": 100,
+      "fee": 10,
+      "collateral": 50,
+      "truth_commit": "0xb50ed9ed0ebe08ac420e37f20d1b3c5e38e2cbb040391b55c01a2cac5daf7b06",
+      "status": "committed",
+      "verdict": "Yes",
+      "reasoning": "Claim: ETH/USD >= 4000 at block 21451200\nReadings used (3 from chainlink-eth-usd, pyth-eth-usd, uniswap-twap): 4127.5, 4126.1, 4131.22\nMedian 4127.5 >= 4000 is True. Verdict: Yes.",
+      "reasoning_hash": "0xed642468c7547482d0f6ff125d2786bdfe5245413c02cb87466e91e02106ccbe",
+      "x402": {
+        "status": 402,
+        "scheme": "exact",
+        "network": "in-memory",
+        "amount": 10,
+        "asset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "pay_to": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "nonce": "0x32fea67083198ec3667911aa7f9a51b425be171bc5c5be56a69df90ef01fa2b8",
+        "signature": "0x6af66bde20ecfb854f38ca2d411fbcf949a343288bb7e88b0bf8ef57c61e03fa3ae21389c5851eda2ed897b14e99f6041b3bf374afbb1490af605a8c0ac575241b",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiaW4tbWVtb3J5IiwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweDZhZjY2YmRlMjBlY2ZiODU0ZjM4Y2EyZDQxMWZiY2Y5NDlhMzQzMjg4YmI3ZTg4YjBiZjhlZjU3YzYxZTAzZmEzYWUyMTM4OWM1ODUxZWRhMmVkODk3YjE0ZTk5ZjYwNDFiM2JmMzc0YWZiYjE0OTBhZjYwNWE4YzBhYzU3NTI0MWIiLCJhdXRob3JpemF0aW9uIjp7ImZyb20iOiIweGYzOUZkNmU1MWFhZDg4RjZGNGNlNmFCODgyNzI3OWNmZkZiOTIyNjYiLCJ0byI6IjB4NUZDOGQzMjY5MGNjOTFENGMzOWQ5ZDNhYmNCRDE2OTg5Rjg3NTcwNyIsInZhbHVlIjoiMTAiLCJ2YWxpZEFmdGVyIjoiMCIsInZhbGlkQmVmb3JlIjoiMTc4NzY0OTQ2NiIsIm5vbmNlIjoiMHgzMmZlYTY3MDgzMTk4ZWMzNjY3OTExYWE3ZjlhNTFiNDI1YmUxNzFiYzVjNWJlNTZhNjlkZjkwZWYwMWZhMmI4In19fQ==",
+        "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4MWFiODIwNjM2YjI2NTBjNTRjYzg5ZWM5M2M1OTA4NTAwZGUxNjVkYTZkODgzNTkyZDZmNGZjNmVkNTk3OTI3MSIsIm5ldHdvcmsiOiJpbi1tZW1vcnkiLCJwYXllciI6IjB4ZjM5RmQ2ZTUxYWFkODhGNkY0Y2U2YUI4ODI3Mjc5Y2ZmRmI5MjI2NiIsImVycm9yUmVhc29uIjpudWxsfQ==",
+        "settle_tx": "0x1ab820636b2650c54cc89ec93c5908500de165da6d883592d6f4fc6ed5979271"
+      },
+      "bonded": 50,
+      "commit_tx": "0xba94f04621e43ae1b1165b8f80b26c49cdda16966f0734d99d324aef6a7d12f6",
+      "settlement": {
+        "revealed_truth": "Yes",
+        "committed": "Yes",
+        "correct": true,
+        "reward_paid": 110,
+        "collateral_returned": 50,
+        "slashed": 0,
+        "stake_before": 50,
+        "stake_after": 0,
+        "score_before": 100,
+        "score_after": 100,
+        "tx": "0x61ee9a895718b0f5951f53c8ecac8a7e4eae8599d8af0d0ea0d906a0cdc725f8"
+      },
+      "reputation": {
+        "agent_id": 1,
+        "feedback_count": 1,
+        "score": 100,
+        "stake": 0,
+        "slashed": 0
+      }
+    },
+    {
+      "agent_id": 2,
+      "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "policy": "stale-cache",
+      "task_id": 2,
+      "bounty": 100,
+      "fee": 10,
+      "collateral": 50,
+      "truth_commit": "0x9b210ac9f236b4b0abf2ae2ed0296996c0199c20f53755bef7ab82d495b7923b",
+      "status": "committed",
+      "verdict": "No",
+      "reasoning": "Claim: ETH/USD >= 4000 at block 21451200\nSkipped the evidence lookup and used a cached quote: ETH/USD=3805 (last week).\nCached 3805 >= 4000 is False. Verdict: No.",
+      "reasoning_hash": "0x8ed7c1b28b4e9b2e0b6e2f556ef987eb1d96fbc94778316239f588f2f2a98395",
+      "x402": {
+        "status": 402,
+        "scheme": "exact",
+        "network": "in-memory",
+        "amount": 10,
+        "asset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "pay_to": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "nonce": "0x1f4fbad71e69e1f43417473f60a8df1cbec6bc8151a53546a7a2c07026eaf16e",
+        "signature": "0xa2ee62b3b4a0f45e03495ab0432423d7a6e883726ba3d7ff411e5124097d4af531676d43e48b13aeaa29f74a73ce057d68293d061ca1cf6394ae3cc2d831bc711c",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiaW4tbWVtb3J5IiwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweGEyZWU2MmIzYjRhMGY0NWUwMzQ5NWFiMDQzMjQyM2Q3YTZlODgzNzI2YmEzZDdmZjQxMWU1MTI0MDk3ZDRhZjUzMTY3NmQ0M2U0OGIxM2FlYWEyOWY3NGE3M2NlMDU3ZDY4MjkzZDA2MWNhMWNmNjM5NGFlM2NjMmQ4MzFiYzcxMWMiLCJhdXRob3JpemF0aW9uIjp7ImZyb20iOiIweDNDNDRDZERkQjZhOTAwZmEyYjU4NWRkMjk5ZTAzZDEyRkE0MjkzQkMiLCJ0byI6IjB4NUZDOGQzMjY5MGNjOTFENGMzOWQ5ZDNhYmNCRDE2OTg5Rjg3NTcwNyIsInZhbHVlIjoiMTAiLCJ2YWxpZEFmdGVyIjoiMCIsInZhbGlkQmVmb3JlIjoiMTc4NzY0OTQ2NiIsIm5vbmNlIjoiMHgxZjRmYmFkNzFlNjllMWY0MzQxNzQ3M2Y2MGE4ZGYxY2JlYzZiYzgxNTFhNTM1NDZhN2EyYzA3MDI2ZWFmMTZlIn19fQ==",
+        "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4NWYyMDg4Zjc2NmQxOGYxZDI2ZDgyZjI3MWNhZDdiNTE0OGIxODY2MTNhYzdkM2U2ZjgxYTRjYmQxNWM3ZmZjNyIsIm5ldHdvcmsiOiJpbi1tZW1vcnkiLCJwYXllciI6IjB4M0M0NENkRGRCNmE5MDBmYTJiNTg1ZGQyOTllMDNkMTJGQTQyOTNCQyIsImVycm9yUmVhc29uIjpudWxsfQ==",
+        "settle_tx": "0x5f2088f766d18f1d26d82f271cad7b5148b186613ac7d3e6f81a4cbd15c7ffc7"
+      },
+      "bonded": 50,
+      "commit_tx": "0xdc24fcf5b5ec8bf0f564c828bbea0eba4d0b66428adf9e553d3ffc8e3bd90012",
+      "settlement": {
+        "revealed_truth": "Yes",
+        "committed": "No",
+        "correct": false,
+        "reward_paid": 0,
+        "collateral_returned": 0,
+        "slashed": 50,
+        "stake_before": 50,
+        "stake_after": 0,
+        "score_before": 100,
+        "score_after": 0,
+        "tx": "0xb79870f608f36bdc13f3741fcb76f266b743cfaf0dc89c3cda820203871ac0f8"
+      },
+      "reputation": {
+        "agent_id": 2,
+        "feedback_count": 1,
+        "score": 0,
+        "stake": 0,
+        "slashed": 50
+      }
+    }
+  ],
+  "events": [
+    {
+      "event": "Registered",
+      "agent_id": 1,
+      "tokenURI": "ipfs://priceright/resolver-card",
+      "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    },
+    {
+      "event": "Registered",
+      "agent_id": 2,
+      "tokenURI": "ipfs://priceright/resolver-card",
+      "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+    },
+    {
+      "event": "TaskPosted",
+      "task_id": 1,
+      "poster": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "bounty": 100,
+      "fee": 10,
+      "slash": 50
+    },
+    {
+      "event": "X402PaymentSettled",
+      "task_id": 1,
+      "payer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "amount": 10,
+      "nonce": "0x32fea67083198ec3667911aa7f9a51b425be171bc5c5be56a69df90ef01fa2b8"
+    },
+    {
+      "event": "Bonded",
+      "bond_key": "0xb689b7fb27041302cb3f75ab02fdfc43b274e2d4faa9d0959400e9b9af08e7ee",
+      "agent_id": 1,
+      "amount": 50
+    },
+    {
+      "event": "TaskClaimed",
+      "task_id": 1,
+      "agent_id": 1,
+      "resolver": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "fee": 10,
+      "bonded": 50,
+      "commit_deadline": 1787652766
+    },
+    {
+      "event": "VerdictCommitted",
+      "task_id": 1,
+      "agent_id": 1,
+      "verdict": "Yes",
+      "reasoning_hash": "0xed642468c7547482d0f6ff125d2786bdfe5245413c02cb87466e91e02106ccbe",
+      "settle_deadline": 1787656366
+    },
+    {
+      "event": "ValidationRequest",
+      "agent_id": 1,
+      "validator": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "request_hash": "0x097acb60b5e5c16f3118139c1b3da2310013077ac11b315dd56ebd569998005f"
+    },
+    {
+      "event": "Released",
+      "bond_key": "0xb689b7fb27041302cb3f75ab02fdfc43b274e2d4faa9d0959400e9b9af08e7ee",
+      "agent_id": 1,
+      "amount": 50
+    },
+    {
+      "event": "Credited",
+      "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "amount": 160,
+      "balance": 160
+    },
+    {
+      "event": "NewFeedback",
+      "agent_id": 1,
+      "client": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "score": 100,
+      "tag1": "priceright.settlement",
+      "tag2": "correct"
+    },
+    {
+      "event": "TaskSettled",
+      "task_id": 1,
+      "agent_id": 1,
+      "correct": true,
+      "truth": "Yes",
+      "slashed": 0,
+      "reward": 110
+    },
+    {
+      "event": "TaskPosted",
+      "task_id": 2,
+      "poster": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "bounty": 100,
+      "fee": 10,
+      "slash": 50
+    },
+    {
+      "event": "X402PaymentSettled",
+      "task_id": 2,
+      "payer": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "amount": 10,
+      "nonce": "0x1f4fbad71e69e1f43417473f60a8df1cbec6bc8151a53546a7a2c07026eaf16e"
+    },
+    {
+      "event": "Bonded",
+      "bond_key": "0xff5947d7a4ec2028c11acdc393c2c3f98f4905f17cd7fc58638800d5513f694a",
+      "agent_id": 2,
+      "amount": 50
+    },
+    {
+      "event": "TaskClaimed",
+      "task_id": 2,
+      "agent_id": 2,
+      "resolver": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "fee": 10,
+      "bonded": 50,
+      "commit_deadline": 1787652766
+    },
+    {
+      "event": "VerdictCommitted",
+      "task_id": 2,
+      "agent_id": 2,
+      "verdict": "No",
+      "reasoning_hash": "0x8ed7c1b28b4e9b2e0b6e2f556ef987eb1d96fbc94778316239f588f2f2a98395",
+      "settle_deadline": 1787656366
+    },
+    {
+      "event": "ValidationRequest",
+      "agent_id": 2,
+      "validator": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "request_hash": "0xd11a780993603247d56e2971b9f9b8115cc7e2b0c52a0023b94bc774e23db214"
+    },
+    {
+      "event": "Slashed",
+      "bond_key": "0xff5947d7a4ec2028c11acdc393c2c3f98f4905f17cd7fc58638800d5513f694a",
+      "agent_id": 2,
+      "amount": 50
+    },
+    {
+      "event": "Credited",
+      "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "amount": 160,
+      "balance": 160
+    },
+    {
+      "event": "NewFeedback",
+      "agent_id": 2,
+      "client": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "score": 0,
+      "tag1": "priceright.settlement",
+      "tag2": "wrong"
+    },
+    {
+      "event": "TaskSettled",
+      "task_id": 2,
+      "agent_id": 2,
+      "correct": false,
+      "truth": "Yes",
+      "slashed": 50,
+      "reward": 0
+    }
+  ],
+  "ledger": {
+    "poster": {
+      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "withdrawable": 160
+    },
+    "agents": [
+      {
+        "agent_id": 1,
+        "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "withdrawable": 160
+      },
+      {
+        "agent_id": 2,
+        "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "withdrawable": 0
+      }
+    ]
+  }
+}
