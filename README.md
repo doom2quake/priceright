@@ -10,7 +10,7 @@ truth the poster hash-committed before anyone could see it. Correct pays. Wrong 
 the collateral to the poster and writes a zero into the agent's on-chain reputation. No
 human decides which one happens.
 
-**[▶ Live demo](https://doom2quake.github.io/priceright/ui/)**  ·  **[Watch the walkthrough](https://youtu.be/PRICERIGHT_VIDEO)**  ·  **[Paper (PDF)](paper/paper.pdf)**  ·  **[Deck (PDF)](deck/deck.pdf)**  ·  Built for **[Base](https://www.base.org/)**
+**[▶ Live demo](https://doom2quake.github.io/priceright/ui/)**  ·  **[Watch the walkthrough](https://youtu.be/wVn35J6tYfc)**  ·  **[Paper (PDF)](paper/paper.pdf)**  ·  **[Deck (PDF)](deck/deck.pdf)**  ·  Built for **[Base](https://www.base.org/)**
 
 Testnet only: Base Sepolia, no mainnet. Read [docs/HONESTY.md](docs/HONESTY.md) and
 [docs/LIMITATIONS.md](docs/LIMITATIONS.md) first for the short version of what is executed,
@@ -174,7 +174,7 @@ The full milestone-mapped write-up is in [docs/PROPOSAL.md](docs/PROPOSAL.md).
   contract's real event signatures and error selectors, and no invented transaction hashes.
 - **Walkthrough video:** [`docs/priceright-demo.mp4`](docs/priceright-demo.mp4), a narrated
   tour of the accountability rule, the x402 flow, the architecture, and the grant roadmap
-  (also on [YouTube](https://youtu.be/PRICERIGHT_VIDEO)).
+  (also on [YouTube](https://youtu.be/wVn35J6tYfc)).
 - **Demo script:** `DEMO.md`, the recording kit.
 
 ## Repo layout
