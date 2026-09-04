@@ -10,9 +10,13 @@ truth the poster hash-committed before anyone could see it. Correct pays. Wrong 
 the collateral to the poster and writes a zero into the agent's on-chain reputation. No
 human decides which one happens.
 
-Testnet only: Base Sepolia, no mainnet.
+**[▶ Live demo](https://doom2quake.github.io/priceright/ui/)**  ·  **[Watch the walkthrough](https://youtu.be/PRICERIGHT_VIDEO)**  ·  **[Paper (PDF)](paper/paper.pdf)**  ·  **[Deck (PDF)](deck/deck.pdf)**  ·  Built for **[Base](https://www.base.org/)**
 
-![PriceRight UI](docs/ui.png)
+Testnet only: Base Sepolia, no mainnet. Read [docs/HONESTY.md](docs/HONESTY.md) and
+[docs/LIMITATIONS.md](docs/LIMITATIONS.md) first for the short version of what is executed,
+what is simulated, and what is not built. Nothing on this page contradicts them.
+
+[![PriceRight UI](docs/ui.png)](https://doom2quake.github.io/priceright/ui/)
 
 ## The hero
 
@@ -139,6 +143,40 @@ Base Sepolia and local devnets only. There is no mainnet path, and no funded key
 been used: read `docs/HONESTY.md` for exactly what has and has not been executed, and
 `docs/LIMITATIONS.md` for what is not built.
 
+## Built for Base and the Coinbase Developer Platform
+
+PriceRight is a candidate entry to the **Base CDP Builder Grants** programme, built for
+**[Base](https://www.base.org/)**, Coinbase's Ethereum L2, and the
+[Coinbase Developer Platform](https://docs.cdp.coinbase.com/). It is an application, not
+an accepted grant: there is no partnership with Coinbase, Base, or the CDP team, and no
+endorsement, and nothing here should be read as one. It is not funded and not awarded.
+
+The reason it belongs on Base is that the three primitives it stands on are all native
+here at once. The fee moves over the [x402 payment protocol](https://www.x402.org/), whose
+`exact` scheme is USDC's EIP-3009 `transferWithAuthorization`, the settlement primitive
+[USDC](https://www.circle.com/usdc) exposes on Base and Base Sepolia. The agents that bond
+collateral and sign those authorizations are the wallets that
+[CDP AgentKit](https://docs.cdp.coinbase.com/agentkit/docs/welcome) provisions (milestone
+2). The settlement path that verifies before it settles is the hosted CDP facilitator
+(milestone 3), which the suite already exercises against a conformant local facilitator
+behind the same seam. Everything in this repo is Base **testnet only**, with no mainnet
+deployment and no real funds.
+
+The full milestone-mapped write-up is in [docs/PROPOSAL.md](docs/PROPOSAL.md).
+
+## Paper, deck & UI
+
+- **[Paper (PDF)](paper/paper.pdf):** `paper/paper.tex`, a short technical write-up (rebuild: `tectonic paper/paper.tex`).
+- **[Deck (PDF)](deck/deck.pdf):** `deck/deck.md`, a Marp slide deck (rebuild: `marp deck/deck.md --pdf`).
+- **[Live demo](https://doom2quake.github.io/priceright/ui/):** `ui/index.html`, the
+  interactive arena demo (also opens offline over `file://`). It is a browser recording plus
+  an in-page recompute of the settlement rule, and it says so on the page: it shows the
+  contract's real event signatures and error selectors, and no invented transaction hashes.
+- **Walkthrough video:** [`docs/priceright-demo.mp4`](docs/priceright-demo.mp4), a narrated
+  tour of the accountability rule, the x402 flow, the architecture, and the grant roadmap
+  (also on [YouTube](https://youtu.be/PRICERIGHT_VIDEO)).
+- **Demo script:** `DEMO.md`, the recording kit.
+
 ## Repo layout
 
 ```
@@ -157,6 +195,7 @@ scripts/devnet.sh             anvil deploy + full run + record
 ui/index.html                 the recorded run, plus the settlement rule recomputed
 docs/HONESTY.md               what is executed, what is not, and why
 docs/LIMITATIONS.md           what is not built, deployed or measured
+docs/PROPOSAL.md              the milestone-mapped grant write-up
 ```
 
 ## Citation
